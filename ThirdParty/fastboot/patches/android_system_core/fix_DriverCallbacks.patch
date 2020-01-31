@@ -1,0 +1,14 @@
+diff --git a/fastboot/fastboot_driver.h b/fastboot/fastboot_driver.h
+index af02637e9..f0402b257 100644
+--- a/fastboot/fastboot_driver.h
++++ b/fastboot/fastboot_driver.h
+@@ -54,7 +54,8 @@ enum RetCode : int {
+     TIMEOUT,
+ };
+ 
+-struct DriverCallbacks {
++class DriverCallbacks {
++  public:
+     std::function<void(const std::string&)> prolog = [](const std::string&) {};
+     std::function<void(int)> epilog = [](int) {};
+     std::function<void(const std::string&)> info = [](const std::string&) {};

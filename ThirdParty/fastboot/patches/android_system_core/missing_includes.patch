@@ -1,0 +1,24 @@
+diff --git a/base/errors_unix.cpp b/base/errors_unix.cpp
+index 296995efe..3c67f5ff3 100644
+--- a/base/errors_unix.cpp
++++ b/base/errors_unix.cpp
+@@ -16,6 +16,7 @@
+ 
+ #include "android-base/errors.h"
+ 
++#include <string.h>
+ #include <errno.h>
+ 
+ namespace android {
+diff --git a/base/include/android-base/file.h b/base/include/android-base/file.h
+index f8748b5d4..a9d4f02f4 100644
+--- a/base/include/android-base/file.h
++++ b/base/include/android-base/file.h
+@@ -20,6 +20,7 @@
+ #include <sys/types.h>
+ 
+ #include <string>
++#include <string.h>
+ 
+ #include <android-base/macros.h>
+ #include "android-base/off64_t.h"

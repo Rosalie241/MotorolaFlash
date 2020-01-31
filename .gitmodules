@@ -1,0 +1,17 @@
+[submodule "third_party/fastboot/android_system_extras"]
+	path = ThirdParty/fastboot/android_system_extras
+	url = https://github.com/LineageOS/android_system_extras/
+	branch = lineage-17.0
+[submodule "third_party/fastboot/android_system_core"]
+	path = ThirdParty/fastboot/android_system_core
+	url = https://github.com/LineageOS/android_system_core/
+	branch = lineage-17.1
+[submodule "third_party/fastboot/googletest"]
+	path = ThirdParty/fastboot/googletest
+	url = https://github.com/google/googletest/
+[submodule "third_party/fastboot/zlib"]
+	path = ThirdParty/fastboot/zlib
+	url = https://github.com/madler/zlib/
+[submodule "third_party/tinyxml2/tinyxml2"]
+	path = ThirdParty/tinyxml2/tinyxml2
+	url = https://github.com/leethomason/tinyxml2

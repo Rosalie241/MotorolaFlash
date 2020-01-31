@@ -1,0 +1,24 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 67c1a0f..6c32538 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -7,9 +7,6 @@ IF(BIICODE)
+ ENDIF(BIICODE)
+ cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+ cmake_policy(VERSION 2.6)
+-if(POLICY CMP0063)
+-	cmake_policy(SET CMP0063 OLD)
+-endif()
+ 
+ project(tinyxml2)
+ include(GNUInstallDirs)
+@@ -42,9 +39,6 @@ option(BUILD_TESTS "build xmltest (deprecated: Use BUILD_TESTING)" ON)
+ # To allow using tinyxml in another shared library
+ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+ 
+-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+-set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+-
+ # to distinguish between debug and release lib
+ set(CMAKE_DEBUG_POSTFIX "d")
+ 
