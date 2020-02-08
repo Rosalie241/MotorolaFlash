@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+# init all modules
+git submodule update --init
+
 # reset all modules
 git submodule foreach --recursive 'git reset --hard'
 git submodule foreach --recursive 'git clean -fdx'
