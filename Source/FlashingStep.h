@@ -18,12 +18,12 @@
 
 struct FlashingStep
 {
-    const char *md5;
-    const char *sha1;
-    const char *operation;
-    const char *partition;
-    const char *var;
-    const char *filename;
+    std::string md5;
+    std::string sha1;
+    std::string operation;
+    std::string partition;
+    std::string var;
+    std::string filename;
 };
 
 #endif // FLASHINGSTEP_H
