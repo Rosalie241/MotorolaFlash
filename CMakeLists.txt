@@ -3,6 +3,10 @@
 #
 cmake_minimum_required(VERSION 3.13)
 
+# we use C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 project(MotorolaFlash)
 
 # libtinyxml2, required for parsing xml
