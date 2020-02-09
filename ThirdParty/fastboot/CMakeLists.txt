@@ -136,5 +136,5 @@ target_include_directories(fastboot PRIVATE
     include/
 )
 
-target_compile_options(fastboot PRIVATE -D_FILE_OFFSET_BITS=64 -DFAKE_LOG_DEVICE=1)
+target_compile_options(fastboot PRIVATE -D_FILE_OFFSET_BITS=64 -DFAKE_LOG_DEVICE=1 -DNDEBUG)
 target_link_libraries(fastboot PRIVATE ${OPENSSL_LIBRARIES} zlibstatic)
