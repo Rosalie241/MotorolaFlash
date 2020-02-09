@@ -121,13 +121,7 @@ bool Fastboot::Flash(std::string fileName, std::string partition)
     }
 
     if (!sparseFile)
-    {
-        struct stat s;
-        if (fstat(fd, &s) == -1)
-            return false;
-
-        imageSize = s.st_size;
-    }
+        imageSize = std::filesystem::file_size(fileName);
 
     // TODO, add sparse file support
     // TODO, close fd in all cases

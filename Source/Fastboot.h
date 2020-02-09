@@ -20,7 +20,7 @@
 #include <fastboot/usb.h>             // usb_open
 
 #include <fcntl.h>    // open
-#include <sys/stat.h> // fstat
+#include <filesystem> // std::filesystem
 #include <thread>     // std::this_thread
 
 #include <QObject> // QObject
