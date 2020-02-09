@@ -54,7 +54,7 @@ void Fastboot::WaitForDeviceConnect()
     fastboot::RetCode ret = this->driver.GetVar("max-download-size", &downloadLimitString);
 
     if (ret == fastboot::RetCode::SUCCESS)
-        this->downloadLimit = std::stol(downloadLimitString.c_str());
+        this->downloadLimit = std::stol(downloadLimitString);
     else
         this->downloadLimit = -1;
 
