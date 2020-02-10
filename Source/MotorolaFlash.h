@@ -31,9 +31,10 @@ class MotorolaFlash : public QMainWindow, private Ui::MotorolaFlash
 
   private:
     // vars
-    Flasher flasher;
+    Flasher *flasher;
     Fastboot *fastboot;
     QThread *fastbootThread;
+    QThread *flasherThread;
     bool flashing;
     bool flashReady;
     bool deviceReady;
@@ -51,12 +52,17 @@ class MotorolaFlash : public QMainWindow, private Ui::MotorolaFlash
     void on_flashButton_clicked();
     void on_openButton_clicked();
     void on_dryRunCheckBox_toggled(bool);
+    void on_rebootCheckBox_toggled(bool);
     void closeEvent(QCloseEvent *);
 
     // Fastboot event handlers
     void handleDeviceConnectedChange(bool);
-    void handleCallbackReceived(const std::string &);
+    void handleCallbackReceived(const std::string);
     void handleStatusCallbackReceived(int);
+
+    // Flasher event handlers
+    void handleProgressChanged(int);
+    void handleFlashingFinished();
 };
 
 #endif // WINDOWFORM_H

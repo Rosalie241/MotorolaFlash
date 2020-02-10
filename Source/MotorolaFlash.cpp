@@ -23,31 +23,40 @@ MotorolaFlash::MotorolaFlash(QMainWindow *parent) : QMainWindow(parent)
     this->setMaximumSize(this->size());
     this->setMinimumSize(this->size());
 
+    // clang-format off
+
     // init bools
-    this->deviceReady = false;
-    this->flashReady = false;
-    this->flashing = false;
-    this->dryRun = false;
+    this->deviceReady       = false;
+    this->flashReady        = false;
+    this->flashing          = false;
+    this->dryRun            = false;
 
-    fastboot = new Fastboot();
-    fastbootThread = new QThread();
+    // init workers
+    this->fastboot          = new Fastboot();
+    this->fastbootThread    = new QThread();
+    this->flasher           = new Flasher(this->fastboot);
+    this->flasherThread     = new QThread();
 
-    // start the work
-    fastboot->moveToThread(fastbootThread);
+    // move the worker classes to threads
+    this->fastboot->moveToThread(this->fastbootThread);
+    this->flasher->moveToThread(this->flasherThread);
 
-    // bind starting function
-    connect(fastbootThread, SIGNAL(started()), fastboot, SLOT(WatchDeviceState()));
+    // required before connecting
+    qRegisterMetaType<std::string>("std::string");
+
+    // bind starting function(s)
+    connect(this->fastbootThread, SIGNAL(started()), this->fastboot, SLOT(WatchDeviceState()));
+    connect(this->flasherThread , SIGNAL(started()), this->flasher , SLOT(Flash()));
 
     // bind Fastboot events
-    connect(fastboot, &Fastboot::OnDeviceConnectedChanged, this, &MotorolaFlash::handleDeviceConnectedChange);
-    connect(fastboot, &Fastboot::OnCallbackReceived, this, &MotorolaFlash::handleCallbackReceived);
-    connect(fastboot, &Fastboot::OnStatusCallbackReceived, this, &MotorolaFlash::handleStatusCallbackReceived);
+    connect(this->fastboot, &Fastboot::OnDeviceConnectedChanged, this, &MotorolaFlash::handleDeviceConnectedChange);
+    connect(this->fastboot, &Fastboot::OnCallbackReceived      , this, &MotorolaFlash::handleCallbackReceived);
+    connect(this->fastboot, &Fastboot::OnStatusCallbackReceived, this, &MotorolaFlash::handleStatusCallbackReceived);
 
-    // connect(wf, &WaitForFastboot::OnDeviceAvailable, this, &MotorolaFlash::deviceReady);
-    // Take care of cleaning up when finished too
-    // connect(fastboot, SIGNAL(onReady()), wait_for_device_thread, SLOT(quit()));
-    // connect(fastboot, SIGNAL(onReady()), fastboot, SLOT(deleteLater()));
-    // connect(wait_for_device_thread, SIGNAL(finished()), this, SLOT(deviceReady()));
+    // bind Flasher events
+    connect(this->flasher , &Flasher::OnProgressChanged        , this, &MotorolaFlash::handleProgressChanged);
+    connect(this->flasher , &Flasher::OnFinished               , this, &MotorolaFlash::handleFlashingFinished);
+    // clang-format on
 
     // start Fastboot thread
     fastbootThread->start();
@@ -62,13 +71,17 @@ MotorolaFlash::~MotorolaFlash()
 void MotorolaFlash::handleStatusCallbackReceived(int status)
 {
     if (status == 0)
-        this->logText->append("[libfastboot] OK!");
+        this->logText->append("[libfastboot] OKAY!");
     else
         this->logText->append("[libfastboot] FAIL!");
 }
 
-void MotorolaFlash::handleCallbackReceived(const std::string &info)
+void MotorolaFlash::handleCallbackReceived(const std::string info)
 {
+    // surpress useless 'is-logical:partition not found'
+    if (info.starts_with("is-logical:") && info.ends_with("not found"))
+        return;
+
     this->logText->append("[libfastboot] " + QString::fromStdString(info));
 }
 
@@ -82,6 +95,17 @@ void MotorolaFlash::handleDeviceConnectedChange(bool connected)
         this->logText->append("[Fastboot] Device connected!");
     else
         this->logText->append("[Fastboot] Device disconnected!");
+}
+
+void MotorolaFlash::handleProgressChanged(int percentProgress)
+{
+    this->progressBar->setValue(percentProgress);
+}
+
+void MotorolaFlash::handleFlashingFinished()
+{
+    this->flashing = false;
+    this->setFlashButton();
 }
 
 void MotorolaFlash::closeEvent(QCloseEvent *event)
@@ -108,14 +132,19 @@ void MotorolaFlash::closeEvent(QCloseEvent *event)
     }
 }
 
-#include <iostream>
-
 void MotorolaFlash::on_flashButton_clicked()
 {
     if (dryRun)
         return;
 
-    this->fastboot->Flash("boot.img", "boot");
+    this->flashing = true;
+    this->setFlashButton();
+
+    // TODO
+    if (this->flasherThread->isRunning())
+        this->flasherThread->terminate();
+
+    this->flasherThread->start();
 }
 
 void MotorolaFlash::on_openButton_clicked()
@@ -126,7 +155,7 @@ void MotorolaFlash::on_openButton_clicked()
     if (file.isEmpty())
         return;
 
-    this->flashReady = this->flasher.LoadFile(file);
+    this->flashReady = this->flasher->LoadFile(file);
 
     if (!flashReady)
         this->logText->append("[Flasher] Failed to load \"" + file + "\"");
@@ -143,8 +172,13 @@ void MotorolaFlash::on_dryRunCheckBox_toggled(bool value)
     this->setFlashButton();
 }
 
+void MotorolaFlash::on_rebootCheckBox_toggled(bool value)
+{
+    this->flasher->RebootAfterFlashing = value;
+}
+
 void MotorolaFlash::setFlashButton()
 {
     // enable flash button when we're ready
-    this->flashButton->setEnabled(flashReady && (deviceReady || dryRun));
+    this->flashButton->setEnabled(flashReady && (deviceReady || dryRun) && !flashing);
 }
