@@ -158,6 +158,21 @@ bool Fastboot::Flash(std::string fileName, std::string partition)
     return ret;
 }
 
+bool Fastboot::Erase(std::string partition)
+{
+    return this->driver.Erase(partition) == fastboot::RetCode::SUCCESS;
+}
+
+bool Fastboot::Oem(std::string command)
+{
+    return this->driver.RawCommand("oem:" + command) == fastboot::RetCode::SUCCESS;
+}
+
+bool Fastboot::GetVar(std::string key, std::string *val)
+{
+    return this->driver.GetVar(key, val) == fastboot::RetCode::SUCCESS;
+}
+
 bool Fastboot::Reboot()
 {
     return this->driver.Reboot() == fastboot::RetCode::SUCCESS;

@@ -47,6 +47,9 @@ class Fastboot : public QObject
     Fastboot();
     ~Fastboot();
     bool Flash(std::string fileName, std::string partition);
+    bool Erase(std::string partition);
+    bool Oem(std::string command);
+    bool GetVar(std::string key, std::string *val);
     bool Reboot();
 
   public slots:
