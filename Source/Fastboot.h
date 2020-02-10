@@ -31,11 +31,12 @@ class Fastboot : public QObject
 
     // clang-format off
   private:
-    Transport *transport            = nullptr;
-    fastboot::FastBootDriver driver = NULL;
-    int64_t downloadLimit           = -1;
-
-    fastboot::DriverCallbacks *callbacks;
+    Transport *transport                  = nullptr;
+    fastboot::FastBootDriver driver       = NULL;
+    int64_t downloadLimit                 = -1;
+    int slotCount                         = -1;
+    std::string currentSlot               = "";
+    fastboot::DriverCallbacks *callbacks  = nullptr;
 
     static int UsbOpenCallback(usb_ifc_info *);
     void WaitForDeviceConnect();

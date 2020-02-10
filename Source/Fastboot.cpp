@@ -58,6 +58,19 @@ void Fastboot::WaitForDeviceConnect()
     else
         this->downloadLimit = -1;
 
+    // extract slot-count
+    std::string slotCountString;
+    ret = this->driver.GetVar("slot-count", &slotCountString);
+
+    if (ret == fastboot::RetCode::SUCCESS)
+        this->slotCount = std::stol(slotCountString);
+    else
+        this->slotCount = -1;
+
+    // extract current-slot
+    if (this->driver.GetVar("current-slot", &this->currentSlot) != fastboot::RetCode::SUCCESS)
+        this->currentSlot = "";
+
     emit this->OnDeviceConnectedChanged(true);
 }
 
@@ -107,37 +120,45 @@ bool Fastboot::Flash(std::string fileName, std::string partition)
     if (fd == -1)
         return false;
 
-    sparse_file *sparseFile = sparse_file_import_auto(fd, false, false);
+    imageSize = std::filesystem::file_size(fileName);
 
-    if (sparseFile)
+    // only check for slot when it's an AB device
+    if (slotCount >= 2)
     {
-        imageSize = sparse_file_len(sparseFile, false, false);
-        sparse_file_destroy(sparseFile);
+        // check if partition has ab slot
+        std::string hasSlot;
 
-        // it's not 'sparse'
-        // when we can flash it in 1 go
-        if (imageSize > this->downloadLimit)
-            isSparse = true;
+        fastboot::RetCode ret = this->driver.GetVar("has-slot:" + partition, &hasSlot);
+
+        if (ret != fastboot::RetCode::SUCCESS)
+        {
+            close(fd);
+            return false;
+        }
+
+        // if it has, append current slot to partition name
+        if (hasSlot == "yes")
+            partition += "_" + this->currentSlot;
     }
 
-    if (!sparseFile)
-        imageSize = std::filesystem::file_size(fileName);
+    // if the partition is logical, resize on device
+    std::string isLogicalString;
+    bool isLogical = this->driver.GetVar("is-logical:" + partition, &isLogicalString) == fastboot::RetCode::SUCCESS &&
+                     isLogicalString == "yes";
+    if (isLogical)
+        this->driver.ResizePartition(partition, std::to_string(imageSize));
 
-    // TODO, add sparse file support
-    // TODO, close fd in all cases
+    bool ret = this->driver.FlashPartition(partition, fd, imageSize) == fastboot::RetCode::SUCCESS;
 
-    if (!isSparse)
-        return this->driver.FlashPartition(partition, fd, imageSize) == fastboot::RetCode::SUCCESS;
+    // show error when not successful
+    if (!ret)
+        emit this->OnCallbackReceived(this->driver.Error());
 
     close(fd);
-
-    return false;
+    return ret;
 }
 
 bool Fastboot::Reboot()
 {
-    return this->driver.RebootTo("bootloader") == fastboot::RetCode::SUCCESS;
+    return this->driver.Reboot() == fastboot::RetCode::SUCCESS;
 }
-
-// implement flashing!
-// https://github.com/google/python-adb/issues/23#issuecomment-225846061
