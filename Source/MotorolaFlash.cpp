@@ -149,7 +149,8 @@ void MotorolaFlash::on_flashButton_clicked()
 
 void MotorolaFlash::on_openButton_clicked()
 {
-    QString file = QFileDialog::getOpenFileName(this, tr("Open flashfile.xml"), "", tr("flashfile.xml(flashfile.xml)"));
+    QString file = QFileDialog::getOpenFileName(this, tr("Open flashfile.xml/servicefile.xml"), "",
+                                                tr("flashfile.xml(flashfile.xml);;servicefile.xml(servicefile.xml)"));
 
     // when the user pressed 'cancel', return
     if (file.isEmpty())
