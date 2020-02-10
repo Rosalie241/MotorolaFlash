@@ -16,19 +16,36 @@
 #ifndef FLASHER_H
 #define FLASHER_H
 
+#include "Fastboot.h"     // Fastboot
 #include "FlashingStep.h" // FlashingStep
 
+#include <QDir>       // QDir
+#include <QFileInfo>  // QFileInfo
+#include <QObject>    // QObject
 #include <QString>    // QString
+#include <cstring>    // std::strcmp
 #include <list>       // std::list
 #include <tinyxml2.h> // tinyxml2
-
-class Flasher
+class Flasher : public QObject
 {
+    Q_OBJECT
+
   private:
     std::list<FlashingStep> flashingSteps;
+    std::string directory = "";
+    Fastboot *fastboot = nullptr;
 
   public:
+    Flasher(Fastboot *);
     bool LoadFile(QString);
+    bool RebootAfterFlashing = true;
+
+  public slots:
+    void Flash();
+
+  signals:
+    void OnProgressChanged(int);
+    void OnFinished();
 };
 
 #endif // FLASHER_H
