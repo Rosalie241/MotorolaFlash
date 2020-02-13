@@ -41,6 +41,7 @@ class Fastboot : public QObject
     static int UsbOpenCallback(usb_ifc_info *);
     void WaitForDeviceConnect();
     void WaitForDeviceDisConnect();
+    bool checkDevice();
 
     // clang-format on
   public:
