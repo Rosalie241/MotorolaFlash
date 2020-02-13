@@ -53,6 +53,7 @@ class MotorolaFlash : public QMainWindow, private Ui::MotorolaFlash
     void on_openButton_clicked();
     void on_dryRunCheckBox_toggled(bool);
     void on_rebootCheckBox_toggled(bool);
+    void on_verifyCheckBox_toggled(bool);
     void closeEvent(QCloseEvent *);
 
     // Fastboot event handlers

@@ -183,6 +183,11 @@ void MotorolaFlash::on_rebootCheckBox_toggled(bool value)
     this->flasher->SetRebootAfterFlashing(value);
 }
 
+void MotorolaFlash::on_verifyCheckBox_toggled(bool value)
+{
+    this->flasher->SetVerifyFiles(value);
+}
+
 void MotorolaFlash::setFlashButton()
 {
     // enable flash button when we're ready
