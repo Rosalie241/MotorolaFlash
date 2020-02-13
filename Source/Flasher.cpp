@@ -92,6 +92,11 @@ void Flasher::SetRebootAfterFlashing(bool value)
     this->rebootAfterFlashing = value;
 }
 
+void Flasher::SetVerifyFiles(bool value)
+{
+    this->verifyFiles = value;
+}
+
 void Flasher::Flash()
 {
     // make sure we have everything
@@ -106,36 +111,39 @@ void Flasher::Flash()
     // clang-format on
 
     // verify hashes
-    for (FlashingStep step : this->flashingSteps)
+    if (this->verifyFiles)
     {
-        if (step.filename.empty())
-            continue;
-
-        emit this->OnStatusUpdate("Verifying " + step.filename);
-
-        QString fileName = QDir::cleanPath(QString::fromStdString(this->directory) + QDir::separator() +
-                                           QString::fromStdString(step.filename));
-
-        QCryptographicHash::Algorithm hashType = QCryptographicHash::Algorithm::Md5;
-        QString fileHash = QString::fromStdString(step.md5);
-
-        if (step.md5.empty())
+        for (FlashingStep step : this->flashingSteps)
         {
-            hashType = QCryptographicHash::Algorithm::Sha1;
-            fileHash = QString::fromStdString(step.sha1);
-        }
+            if (step.filename.empty())
+                continue;
 
-        bool ret = this->verifyHash(fileName, fileHash, hashType);
+            emit this->OnStatusUpdate("Verifying " + step.filename);
 
-        if (!ret)
-            status = "FAILED!";
+            QString fileName = QDir::cleanPath(QString::fromStdString(this->directory) + QDir::separator() +
+                                               QString::fromStdString(step.filename));
 
-        emit this->OnStatusUpdate(status);
+            QCryptographicHash::Algorithm hashType = QCryptographicHash::Algorithm::Md5;
+            QString fileHash = QString::fromStdString(step.md5);
 
-        if (!ret)
-        {
-            emit this->OnFinished();
-            return;
+            if (step.md5.empty())
+            {
+                hashType = QCryptographicHash::Algorithm::Sha1;
+                fileHash = QString::fromStdString(step.sha1);
+            }
+
+            bool ret = this->verifyHash(fileName, fileHash, hashType);
+
+            if (!ret)
+                status = "FAILED!";
+
+            emit this->OnStatusUpdate(status);
+
+            if (!ret)
+            {
+                emit this->OnFinished();
+                return;
+            }
         }
     }
 

@@ -38,7 +38,7 @@ class Flasher : public QObject
     Fastboot *fastboot = nullptr;
     bool rebootAfterFlashing = true;
     bool dryRun = false;
-
+    bool verifyFiles = false;
     bool verifyHash(QString fileName, QString hash, QCryptographicHash::Algorithm hashType);
 
   public:
@@ -46,6 +46,7 @@ class Flasher : public QObject
     bool LoadFile(QString);
     void SetDryRun(bool);
     void SetRebootAfterFlashing(bool);
+    void SetVerifyFiles(bool);
 
   public slots:
     void Flash();
