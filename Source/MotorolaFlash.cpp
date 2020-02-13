@@ -97,7 +97,7 @@ void MotorolaFlash::handleDeviceConnectedChange(bool connected)
 {
     deviceReady = connected;
 
-    this->setFlashButton();
+    this->setButtons();
 
     if (connected)
         this->logText->append("[Fastboot] Device connected!");
@@ -118,7 +118,7 @@ void MotorolaFlash::handleStatusUpdate(std::string info)
 void MotorolaFlash::handleFlashingFinished()
 {
     this->flashing = false;
-    this->setFlashButton();
+    this->setButtons();
 }
 
 void MotorolaFlash::closeEvent(QCloseEvent *event)
@@ -148,7 +148,7 @@ void MotorolaFlash::closeEvent(QCloseEvent *event)
 void MotorolaFlash::on_flashButton_clicked()
 {
     this->flashing = true;
-    this->setFlashButton();
+    this->setButtons();
 
     // reset progress bar
     this->progressBar->setValue(0);
@@ -172,7 +172,7 @@ void MotorolaFlash::on_openButton_clicked()
     else
         this->logText->append("[Flasher] \"" + file + "\"");
 
-    this->setFlashButton();
+    this->setButtons();
 }
 
 void MotorolaFlash::on_dryRunCheckBox_toggled(bool value)
@@ -180,7 +180,7 @@ void MotorolaFlash::on_dryRunCheckBox_toggled(bool value)
     this->dryRun = value;
     this->flasher->SetDryRun(value);
 
-    this->setFlashButton();
+    this->setButtons();
 }
 
 void MotorolaFlash::on_rebootCheckBox_toggled(bool value)
@@ -193,8 +193,9 @@ void MotorolaFlash::on_verifyCheckBox_toggled(bool value)
     this->flasher->SetVerifyFiles(value);
 }
 
-void MotorolaFlash::setFlashButton()
+void MotorolaFlash::setButtons()
 {
-    // enable flash button when we're ready
-    this->flashButton->setEnabled(flashReady && (deviceReady || dryRun) && !flashing);
+    // enable buttons when ready
+    this->flashButton->setEnabled(this->flashReady && (this->deviceReady || this->dryRun) && !this->flashing);
+    this->openButton->setEnabled(!this->flashing);
 }

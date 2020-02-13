@@ -42,7 +42,7 @@ class MotorolaFlash : public QMainWindow, private Ui::MotorolaFlash
     bool dryRun;
 
     // functions
-    void setFlashButton();
+    void setButtons();
 
   public:
     MotorolaFlash(QMainWindow *);
