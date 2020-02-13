@@ -28,6 +28,7 @@ add_executable(MotorolaFlash
 
     # Source code
     Source/Flasher.cpp
+    Source/FlasherThread.cpp
     Source/MotorolaFlash.cpp
     Source/Fastboot.cpp
     Source/main.cpp
