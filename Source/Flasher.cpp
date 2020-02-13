@@ -20,6 +20,16 @@ Flasher::Flasher(Fastboot *fastboot)
     this->fastboot = fastboot;
 }
 
+bool Flasher::verifyHash(QString fileName, QString hash, QCryptographicHash::Algorithm hashType)
+{
+    QFile file(fileName);
+    file.open(QIODevice::ReadOnly);
+
+    std::string fileHash = QCryptographicHash::hash(file.readAll(), hashType).toHex().toStdString();
+
+    return fileHash == hash.toStdString();
+}
+
 bool Flasher::LoadFile(QString file)
 {
     // clear vars
@@ -72,52 +82,105 @@ bool Flasher::LoadFile(QString file)
     return true;
 }
 
+void Flasher::SetDryRun(bool value)
+{
+    this->dryRun = value;
+}
+
+void Flasher::SetRebootAfterFlashing(bool value)
+{
+    this->rebootAfterFlashing = value;
+}
+
 void Flasher::Flash()
 {
     // make sure we have everything
     if (!this->fastboot || this->flashingSteps.empty() || this->directory.empty())
         return;
 
-    float totalSteps = flashingSteps.size();
-    float currentStep = 0.0;
-    bool failed = false;
+    // clang-format off
+    float totalSteps    = flashingSteps.size();
+    float currentStep   = 0.0;
+    bool ret            = true;
+    std::string status  = "OK!";
+    // clang-format on
+
+    // verify hashes
+    for (FlashingStep step : this->flashingSteps)
+    {
+        if (step.filename.empty())
+            continue;
+
+        emit this->OnStatusUpdate("Verifying " + step.filename);
+
+        QString fileName = QDir::cleanPath(QString::fromStdString(this->directory) + QDir::separator() +
+                                           QString::fromStdString(step.filename));
+
+        QCryptographicHash::Algorithm hashType = QCryptographicHash::Algorithm::Md5;
+        QString fileHash = QString::fromStdString(step.md5);
+
+        if (step.md5.empty())
+        {
+            hashType = QCryptographicHash::Algorithm::Sha1;
+            fileHash = QString::fromStdString(step.sha1);
+        }
+
+        bool ret = this->verifyHash(fileName, fileHash, hashType);
+
+        if (!ret)
+            status = "FAILED!";
+
+        emit this->OnStatusUpdate(status);
+
+        if (!ret)
+        {
+            emit this->OnFinished();
+            return;
+        }
+    }
+
+    // flash loop
     for (FlashingStep step : this->flashingSteps)
     {
         currentStep++;
 
-        if (step.operation == "flash")
-        { // fastboot flash
+        emit this->OnStatusUpdate(step.operation + " " + step.partition + step.var);
 
-            QString fileName = QDir::cleanPath(QString::fromStdString(this->directory) + QDir::separator() +
-                                               QString::fromStdString(step.filename));
+        if (!this->dryRun)
+        {
+            if (step.operation == "flash")
+            { // fastboot flash
 
-            if (!this->fastboot->Flash(fileName.toStdString(), step.partition))
-                break;
-        }
-        else if (step.operation == "erase")
-        { // fastboot erase
+                QString fileName = QDir::cleanPath(QString::fromStdString(this->directory) + QDir::separator() +
+                                                   QString::fromStdString(step.filename));
 
-            failed = !this->fastboot->Erase(step.partition);
-        }
-        else if (step.operation == "oem")
-        { // fastboot oem
+                ret = this->fastboot->Flash(fileName.toStdString(), step.partition);
+            }
+            else if (step.operation == "erase")
+            { // fastboot erase
 
-            failed = !this->fastboot->Oem(step.var);
-        }
-        else if (step.operation == "getvar")
-        { // fastboot getvar
+                ret = this->fastboot->Erase(step.partition);
+            }
+            else if (step.operation == "oem")
+            { // fastboot oem
 
-            failed = !this->fastboot->GetVar(step.var, nullptr);
+                ret = this->fastboot->Oem(step.var);
+            }
+            else if (step.operation == "getvar")
+            { // fastboot getvar
+
+                ret = this->fastboot->GetVar(step.var, nullptr);
+            }
         }
 
         emit this->OnProgressChanged((int)(currentStep / totalSteps * 100));
 
         // break when failed
-        if (failed)
+        if (!ret)
             break;
     }
 
-    if (this->RebootAfterFlashing && !failed)
+    if (this->rebootAfterFlashing && !this->dryRun && ret)
         this->fastboot->Reboot();
 
     emit this->OnFinished();

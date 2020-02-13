@@ -19,13 +19,15 @@
 #include "Fastboot.h"     // Fastboot
 #include "FlashingStep.h" // FlashingStep
 
-#include <QDir>       // QDir
-#include <QFileInfo>  // QFileInfo
-#include <QObject>    // QObject
-#include <QString>    // QString
-#include <cstring>    // std::strcmp
-#include <list>       // std::list
-#include <tinyxml2.h> // tinyxml2
+#include <QCryptographicHash> // QCryptographicHash
+#include <QDir>               // QDir
+#include <QFileInfo>          // QFileInfo
+#include <QObject>            // QObject
+#include <QString>            // QString
+#include <cstring>            // std::strcmp
+#include <list>               // std::list
+#include <tinyxml2.h>         // tinyxml2
+
 class Flasher : public QObject
 {
     Q_OBJECT
@@ -34,16 +36,22 @@ class Flasher : public QObject
     std::list<FlashingStep> flashingSteps;
     std::string directory = "";
     Fastboot *fastboot = nullptr;
+    bool rebootAfterFlashing = true;
+    bool dryRun = false;
+
+    bool verifyHash(QString fileName, QString hash, QCryptographicHash::Algorithm hashType);
 
   public:
     Flasher(Fastboot *);
     bool LoadFile(QString);
-    bool RebootAfterFlashing = true;
+    void SetDryRun(bool);
+    void SetRebootAfterFlashing(bool);
 
   public slots:
     void Flash();
 
   signals:
+    void OnStatusUpdate(std::string);
     void OnProgressChanged(int);
     void OnFinished();
 };
