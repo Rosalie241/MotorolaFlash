@@ -119,8 +119,6 @@ bool Fastboot::Flash(std::string fileName, std::string partition)
     if (!this->checkDevice())
         return false;
 
-    bool failed = true;
-    bool isSparse = false;
     int64_t imageSize = -1;
 
     // failed to extract download limit
