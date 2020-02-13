@@ -69,8 +69,11 @@ MotorolaFlash::MotorolaFlash(QMainWindow *parent) : QMainWindow(parent)
 
 MotorolaFlash::~MotorolaFlash()
 {
-    if (fastbootThread->isRunning())
-        fastbootThread->terminate();
+    if (this->fastbootThread->isRunning())
+        this->fastbootThread->terminate();
+
+    if (this->flasherThread->isRunning())
+        this->flasherThread->terminate();
 }
 
 void MotorolaFlash::handleStatusCallbackReceived(int status)
