@@ -18,6 +18,7 @@
 
 #include "Fastboot.h"         // Fastboot
 #include "Flasher.h"          // Flasher
+#include "FlasherThread.h"    // FlasherThread
 #include "ui_MotorolaFlash.h" // Ui::MotorolaFlash
 
 #include <QCloseEvent> // QCloseEvent
@@ -34,7 +35,7 @@ class MotorolaFlash : public QMainWindow, private Ui::MotorolaFlash
     Flasher *flasher;
     Fastboot *fastboot;
     QThread *fastbootThread;
-    QThread *flasherThread;
+    FlasherThread *flasherThread;
     bool flashing;
     bool flashReady;
     bool deviceReady;

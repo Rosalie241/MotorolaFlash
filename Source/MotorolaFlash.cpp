@@ -35,18 +35,16 @@ MotorolaFlash::MotorolaFlash(QMainWindow *parent) : QMainWindow(parent)
     this->fastboot          = new Fastboot();
     this->fastbootThread    = new QThread();
     this->flasher           = new Flasher(this->fastboot);
-    this->flasherThread     = new QThread();
+    this->flasherThread     = new FlasherThread(this->flasher);
 
     // move the worker classes to threads
     this->fastboot->moveToThread(this->fastbootThread);
-    this->flasher->moveToThread(this->flasherThread);
 
     // required before connecting
     qRegisterMetaType<std::string>("std::string");
 
     // bind starting function(s)
     connect(this->fastbootThread, SIGNAL(started()), this->fastboot, SLOT(WatchDeviceState()));
-    connect(this->flasherThread , SIGNAL(started()), this->flasher , SLOT(Flash()));
 
     // bind Fastboot events
     connect(this->fastboot, &Fastboot::OnDeviceConnectedChanged, this, &MotorolaFlash::handleDeviceConnectedChange);
@@ -148,10 +146,6 @@ void MotorolaFlash::on_flashButton_clicked()
 {
     this->flashing = true;
     this->setFlashButton();
-
-    // TODO
-    if (this->flasherThread->isRunning())
-        this->flasherThread->terminate();
 
     this->flasherThread->start();
 }
