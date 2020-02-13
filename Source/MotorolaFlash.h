@@ -62,6 +62,7 @@ class MotorolaFlash : public QMainWindow, private Ui::MotorolaFlash
 
     // Flasher event handlers
     void handleProgressChanged(int);
+    void handleStatusUpdate(std::string);
     void handleFlashingFinished();
 };
 

@@ -56,6 +56,8 @@ MotorolaFlash::MotorolaFlash(QMainWindow *parent) : QMainWindow(parent)
     // bind Flasher events
     connect(this->flasher , &Flasher::OnProgressChanged        , this, &MotorolaFlash::handleProgressChanged);
     connect(this->flasher , &Flasher::OnFinished               , this, &MotorolaFlash::handleFlashingFinished);
+    connect(this->flasher , &Flasher::OnStatusUpdate           , this, &MotorolaFlash::handleStatusUpdate);
+
     // clang-format on
 
     // start Fastboot thread
@@ -102,6 +104,11 @@ void MotorolaFlash::handleProgressChanged(int percentProgress)
     this->progressBar->setValue(percentProgress);
 }
 
+void MotorolaFlash::handleStatusUpdate(std::string info)
+{
+    this->logText->append("[Flasher] " + QString::fromStdString(info));
+}
+
 void MotorolaFlash::handleFlashingFinished()
 {
     this->flashing = false;
@@ -134,9 +141,6 @@ void MotorolaFlash::closeEvent(QCloseEvent *event)
 
 void MotorolaFlash::on_flashButton_clicked()
 {
-    if (dryRun)
-        return;
-
     this->flashing = true;
     this->setFlashButton();
 
@@ -169,13 +173,14 @@ void MotorolaFlash::on_openButton_clicked()
 void MotorolaFlash::on_dryRunCheckBox_toggled(bool value)
 {
     this->dryRun = value;
+    this->flasher->SetDryRun(value);
 
     this->setFlashButton();
 }
 
 void MotorolaFlash::on_rebootCheckBox_toggled(bool value)
 {
-    this->flasher->RebootAfterFlashing = value;
+    this->flasher->SetRebootAfterFlashing(value);
 }
 
 void MotorolaFlash::setFlashButton()
