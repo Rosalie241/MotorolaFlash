@@ -147,6 +147,9 @@ void MotorolaFlash::on_flashButton_clicked()
     this->flashing = true;
     this->setFlashButton();
 
+    // reset progress bar
+    this->progressBar->setValue(0);
+
     this->flasherThread->start();
 }
 
