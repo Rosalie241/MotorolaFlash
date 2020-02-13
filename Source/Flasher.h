@@ -36,9 +36,10 @@ class Flasher : public QObject
     std::list<FlashingStep> flashingSteps;
     std::string directory = "";
     Fastboot *fastboot = nullptr;
-    bool rebootAfterFlashing = true;
-    bool dryRun = false;
-    bool verifyFiles = false;
+    bool rebootAfterFlashing;
+    bool dryRun;
+    bool verifyFiles;
+
     bool verifyHash(QString fileName, QString hash, QCryptographicHash::Algorithm hashType);
 
   public:
