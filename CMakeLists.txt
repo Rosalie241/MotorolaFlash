@@ -32,6 +32,9 @@ add_executable(MotorolaFlash
     Source/MotorolaFlash.cpp
     Source/Fastboot.cpp
     Source/main.cpp
+
+    # resources
+    Source/resources.qrc
 )
 
 # set include directories
