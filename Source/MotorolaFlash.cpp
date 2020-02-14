@@ -198,4 +198,9 @@ void MotorolaFlash::setButtons()
     // enable buttons when ready
     this->flashButton->setEnabled(this->flashReady && (this->deviceReady || this->dryRun) && !this->flashing);
     this->openButton->setEnabled(!this->flashing);
+
+    // disable checkboxes when flashing
+    this->dryRunCheckBox->setEnabled(!this->flashing);
+    this->rebootCheckBox->setEnabled(!this->flashing);
+    this->verifyCheckBox->setEnabled(!this->flashing);
 }
