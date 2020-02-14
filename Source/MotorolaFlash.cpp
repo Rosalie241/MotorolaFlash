@@ -23,6 +23,9 @@ MotorolaFlash::MotorolaFlash(QMainWindow *parent) : QMainWindow(parent)
     this->setMaximumSize(this->size());
     this->setMinimumSize(this->size());
 
+    // set window icon
+    this->setWindowIcon(QIcon(":icon.svg"));
+
     // clang-format off
 
     // init bools
