@@ -115,6 +115,8 @@ void Flasher::Flash()
     {
         for (FlashingStep step : this->flashingSteps)
         {
+            currentStep++;
+
             if (step.filename.empty())
                 continue;
 
@@ -138,6 +140,7 @@ void Flasher::Flash()
                 status = "FAILED!";
 
             emit this->OnStatusUpdate(status);
+            emit this->OnProgressChanged((int)(currentStep / totalSteps * 100 / 2));
 
             if (!ret)
             {
@@ -145,6 +148,8 @@ void Flasher::Flash()
                 return;
             }
         }
+
+        currentStep = 0.0;
     }
 
     // flash loop
@@ -181,7 +186,16 @@ void Flasher::Flash()
             }
         }
 
-        emit this->OnProgressChanged((int)(currentStep / totalSteps * 100));
+        // calculate percentage
+        // if we've verified the files,
+        // divide by 2 and add 50,
+        // because the verify files loop ended at 50%
+        float percent = (currentStep / totalSteps * 100);
+
+        if (this->verifyFiles)
+            percent = percent / 2 + 50;
+
+        emit this->OnProgressChanged((int)percent);
 
         // break when failed
         if (!ret)
