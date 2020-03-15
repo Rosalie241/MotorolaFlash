@@ -62,9 +62,9 @@ MotorolaFlash::MotorolaFlash(QMainWindow *parent) : QMainWindow(parent)
     // clang-format on
 
     // init bools in Flasher
-    this->flasher->SetDryRun(this->dryRunCheckBox->isEnabled());
-    this->flasher->SetRebootAfterFlashing(this->rebootCheckBox->isEnabled());
-    this->flasher->SetVerifyFiles(this->verifyCheckBox->isEnabled());
+    this->flasher->SetDryRun(this->dryRunCheckBox->isChecked());
+    this->flasher->SetRebootAfterFlashing(this->rebootCheckBox->isChecked());
+    this->flasher->SetVerifyFiles(this->verifyCheckBox->isChecked());
 
     // start Fastboot thread
     fastbootThread->start();
