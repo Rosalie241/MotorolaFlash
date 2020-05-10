@@ -90,8 +90,10 @@ void MotorolaFlash::handleStatusCallbackReceived(int status)
 void MotorolaFlash::handleCallbackReceived(const std::string info)
 {
     // surpress useless 'is-logical:partition not found'
+#ifndef _WIN32
     if (info.starts_with("is-logical:") && info.ends_with("not found"))
         return;
+#endif
 
     this->logText->append("[libfastboot] " + QString::fromStdString(info));
 }

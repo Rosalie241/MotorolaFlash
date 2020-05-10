@@ -95,6 +95,18 @@ if(WIN32)
         android_system_core/libcutils/socket_network_client_windows.cpp
         android_system_core/libcutils/sockets_windows.cpp
         android_system_core/libcutils/trace-host.cpp
+        # win32 only adb api
+        android_development/host/windows/usb/api/AdbWinApi.cpp
+        android_development/host/windows/usb/api/adb_api.cpp
+        android_development/host/windows/usb/api/adb_interface_enum.cpp
+        android_development/host/windows/usb/api/adb_interface.cpp
+        android_development/host/windows/usb/api/adb_object_handle.cpp
+        android_development/host/windows/usb/api/adb_helper_routines.cpp
+        android_development/host/windows/usb/api/adb_legacy_interface.cpp
+        android_development/host/windows/usb/api/adb_legacy_endpoint_object.cpp
+        android_development/host/windows/usb/api/adb_endpoint_object.cpp
+        android_development/host/windows/usb/api/adb_legacy_io_completion.cpp
+        android_development/host/windows/usb/api/adb_io_completion.cpp
     )
 else()
     list(APPEND SOURCES 
@@ -134,7 +146,9 @@ target_include_directories(fastboot PRIVATE
     zlib/
     googletest/googletest/include/
     include/
+    # windows only
+    android_development/host/windows/usb/api/
 )
 
 target_compile_options(fastboot PRIVATE -D_FILE_OFFSET_BITS=64 -DFAKE_LOG_DEVICE=1 -DNDEBUG)
-target_link_libraries(fastboot PRIVATE ${OPENSSL_LIBRARIES} zlibstatic)
+target_link_libraries(fastboot PRIVATE ${OPENSSL_LIBRARIES} zlibstatic setupapi stdc++fs)
