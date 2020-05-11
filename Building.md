@@ -2,8 +2,8 @@
 1) Install qt5 & openssl
 2) 
 ```
-./prepare.sh
-./build.sh
+./scripts/prepare.sh
+./scripts/build.sh
 ```
 
 # Windows
@@ -12,6 +12,6 @@
 3)
 ```
 sudo pacman -S --needed base-devel mingw-w64-i686-clang mingw-w64-i686-openssl mingw-w64-i686-qt5 mingw-w64-i686-cmake
-./prepare.sh
-./build_msys2.sh
+./scripts/prepare.sh
+./scripts/publish_windows.sh
 ```
