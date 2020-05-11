@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     // let's not quit when we close a dialog
     app.setQuitOnLastWindowClosed(false);
 
-    MotorolaFlash ui(new QMainWindow());
+    MotorolaFlash ui;
 
     ui.show();
 
