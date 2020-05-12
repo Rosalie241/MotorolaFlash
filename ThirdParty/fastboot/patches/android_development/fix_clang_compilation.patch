@@ -591,3 +591,29 @@ index c2aa8dee6..21555b95e 100755
 +#else
 +#define ATLASSERT(x) 
 +#endif // NDEBUG
+diff --git a/host/windows/usb/api/AdbWinApi.rc b/host/windows/usb/api/AdbWinApi.rc
+index 0d78dd3d1..3bbd36c39 100644
+--- a/host/windows/usb/api/AdbWinApi.rc
++++ b/host/windows/usb/api/AdbWinApi.rc
+@@ -23,7 +23,7 @@
+ //
+ // Generated from the TEXTINCLUDE 2 resource.
+ //
+-#include "winres.h"
++#include "winresrc.h"
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ #undef APSTUDIO_READONLY_SYMBOLS
+diff --git a/host/windows/usb/winusb/AdbWinUsbApi.rc b/host/windows/usb/winusb/AdbWinUsbApi.rc
+index a33082e07..1493ab3d3 100755
+--- a/host/windows/usb/winusb/AdbWinUsbApi.rc
++++ b/host/windows/usb/winusb/AdbWinUsbApi.rc
+@@ -23,7 +23,7 @@
+ //
+ // Generated from the TEXTINCLUDE 2 resource.
+ //
+-#include "winres.h"
++#include "winresrc.h"
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ #undef APSTUDIO_READONLY_SYMBOLS
