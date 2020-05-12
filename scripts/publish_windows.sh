@@ -9,7 +9,9 @@ mkdir -p "$publish_dir"
 
 # Copy build artifacts
 cp build/MotorolaFlash.exe "$publish_dir/MotorolaFlash.exe"
-cp ThirdParty/fastboot/android_development/host/windows/prebuilt/usb/AdbWinUsbApi.dll \
+cp build/ThirdParty/fastboot/AdbWinApi.dll \
+    "$publish_dir/AdbWinApi.dll"
+cp build/ThirdParty/fastboot/AdbWinUsbApi.dll \
     "$publish_dir/AdbWinUsbApi.dll"
 
 # Bundle dependencies

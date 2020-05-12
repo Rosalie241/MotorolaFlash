@@ -191,6 +191,7 @@ if(WIN32)
     # AdbWinApi
     set(LIBADBWINAPI_SOURCES
         android_development/host/windows/usb/api/AdbWinApi.cpp
+        android_development/host/windows/usb/api/AdbWinApi.rc
         android_development/host/windows/usb/api/adb_api.cpp
         android_development/host/windows/usb/api/adb_interface_enum.cpp
         android_development/host/windows/usb/api/adb_interface.cpp
@@ -203,10 +204,14 @@ if(WIN32)
         android_development/host/windows/usb/api/adb_io_completion.cpp
         android_development/host/windows/usb/winusb/adb_generic_lock.cpp
     )
+    set(LIBADBWINAPI_LIBRARIES
+        setupapi
+    )
 
     # AdbWinUsbApi
     set(LIBADBWINUSBAPI_SOURCES
         android_development/host/windows/usb/winusb/AdbWinUsbApi.cpp
+        android_development/host/windows/usb/winusb/AdbWinUsbApi.rc
         android_development/host/windows/usb/winusb/adb_winusb_interface.cpp
         android_development/host/windows/usb/winusb/adb_winusb_endpoint_object.cpp
         android_development/host/windows/usb/winusb/adb_generic_lock.cpp
@@ -255,7 +260,7 @@ add_library(sparse STATIC ${LIBSPARSE_SOURCES})
 add_library(diagnose_usb STATIC ${LIBDIAGNOSE_USB_SOURCES})
 add_library(ext4_utils STATIC ${LIBEXT4_UTILS_SOURCES})
 if(WIN32) # windows exclusive libs
-add_library(AdbWinApi STATIC ${LIBADBWINAPI_SOURCES})
+add_library(AdbWinApi SHARED ${LIBADBWINAPI_SOURCES})
 add_library(AdbWinUsbApi SHARED ${LIBADBWINUSBAPI_SOURCES})
 endif(WIN32)
 
@@ -287,5 +292,14 @@ endif(WIN32)
 #
 target_link_libraries(fastboot PRIVATE ${LIBFASTBOOT_LIBRARIES})
 if(WIN32)
+target_link_libraries(AdbWinApi PRIVATE ${LIBADBWINAPI_LIBRARIES})
 target_link_libraries(AdbWinUsbApi PRIVATE ${LIBADBWINUSBAPI_LIBRARIES})
+endif(WIN32)
+
+#
+# Set target properties
+#
+if(WIN32)
+set_target_properties(AdbWinApi PROPERTIES PREFIX "")
+set_target_properties(AdbWinUsbApi PROPERTIES PREFIX "")
 endif(WIN32)
