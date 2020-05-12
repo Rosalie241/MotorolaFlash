@@ -76,9 +76,14 @@ void Fastboot::WaitForDeviceConnect()
 
 void Fastboot::WaitForDeviceDisConnect()
 {
-    // TODO: test on windows
+#ifndef _WIN32
     while (this->transport->WaitForDisconnect() == -1)
         std::this_thread::sleep_for(std::chrono::microseconds(50));
+#else
+    // TODO, figure this out
+    while(this->transport)
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
+#endif // _WIN32
 
     // reset transport
     this->transport = nullptr;

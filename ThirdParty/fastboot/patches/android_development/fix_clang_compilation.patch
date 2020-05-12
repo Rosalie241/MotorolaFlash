@@ -1,0 +1,619 @@
+diff --git a/host/windows/usb/api/AdbWinApi.cpp b/host/windows/usb/api/AdbWinApi.cpp
+index 507a2b59d..e200ae728 100644
+--- a/host/windows/usb/api/AdbWinApi.cpp
++++ b/host/windows/usb/api/AdbWinApi.cpp
+@@ -29,84 +29,50 @@ int _forceAtlDllManifest;
+ /// References InstantiateWinUsbInterface declared in adb_api.cpp
+ extern PFN_INSTWINUSBINTERFACE InstantiateWinUsbInterface;
+ 
+-class CAdbWinApiModule : public CAtlDllModuleT< CAdbWinApiModule > {
+- public:
+-  CAdbWinApiModule()
+-      : CAtlDllModuleT< CAdbWinApiModule >(),
+-        adbwinusbapi_handle_(NULL),
+-        is_initialized_(false) {
++// Globals
++HINSTANCE g_adbwinusbapi_handle;
++bool      g_is_initialized;
++bool      g_return;
++
++bool AttachToAdbWinUsbApi() {
++  // We only need to run this only once.
++  if (g_is_initialized) {
++    return g_return;
+   }
+ 
+-  ~CAdbWinApiModule() {
+-    // Unload AdbWinUsbApi.dll before we exit
+-    if (NULL != adbwinusbapi_handle_) {
+-      FreeLibrary(adbwinusbapi_handle_);
+-    }
+-  }
+-
+-  /** \brief Loads AdbWinUsbApi.dll and caches its InstantiateWinUsbInterface
+-    export.
+-
+-    This method is called from DllMain on DLL_PROCESS_ATTACH event. In this
+-    method we will check if WINUSB.DLL required by AdbWinUsbApi.dll is
+-    installed, and if it is we will load AdbWinUsbApi.dll and cache address of
+-    InstantiateWinUsbInterface routine exported from AdbWinUsbApi.dll
+-  */
+-  void AttachToAdbWinUsbApi() {
+-    // We only need to run this only once.
+-    if (is_initialized_) {
+-      return;
+-    }
+-
+-    // Just mark that we have ran initialization.
+-    is_initialized_ = true;
+-
+-    // Before we can load AdbWinUsbApi.dll we must make sure that WINUSB.DLL
+-    // has been installed. Build path to the file.
+-    wchar_t path_to_winusb_dll[MAX_PATH+1];
+-    if (!GetSystemDirectory(path_to_winusb_dll, MAX_PATH)) {
+-      return;
+-    }
+-    wcscat(path_to_winusb_dll, L"\\WINUSB.DLL");
+-
+-    if (0xFFFFFFFF == GetFileAttributes(path_to_winusb_dll)) {
+-      // WINUSB.DLL is not installed. We don't (in fact, can't) load
+-      // AdbWinUsbApi.dll
+-      return;
+-    }
++  // Just mark that we have ran initialization.
++  g_is_initialized = true;
+ 
+-    // WINUSB.DLL is installed. Lets load AdbWinUsbApi.dll and cache its
+-    // InstantiateWinUsbInterface export.
+-    // We require that AdbWinUsbApi.dll is located in the same folder
+-    // where AdbWinApi.dll and adb.exe are located, so by Windows
+-    // conventions we can pass just module name, and not the full path.
+-    adbwinusbapi_handle_ = LoadLibrary(L"AdbWinUsbApi.dll");
+-    if (NULL != adbwinusbapi_handle_) {
+-      InstantiateWinUsbInterface = reinterpret_cast<PFN_INSTWINUSBINTERFACE>
+-          (GetProcAddress(adbwinusbapi_handle_, "InstantiateWinUsbInterface"));
+-    }
++  // Before we can load AdbWinUsbApi.dll we must make sure that WINUSB.DLL
++  // has been installed. Build path to the file.
++  wchar_t path_to_winusb_dll[MAX_PATH+1];
++  if (!GetSystemDirectoryW(path_to_winusb_dll, MAX_PATH)) {
++    g_return = false;
++    goto ret;
+   }
++  wcscat(path_to_winusb_dll, L"\\WINUSB.DLL");
+ 
+- protected:
+-  /// Handle to the loaded AdbWinUsbApi.dll
+-  HINSTANCE adbwinusbapi_handle_;
+-
+-  /// Flags whether or not this module has been initialized.
+-  bool      is_initialized_;
+-};
+-
+-CAdbWinApiModule _AtlModule;
++  if (0xFFFFFFFF == GetFileAttributesW(path_to_winusb_dll)) {
++    // WINUSB.DLL is not installed. We don't (in fact, can't) load
++    // AdbWinUsbApi.dll
++    g_return = false;
++    goto ret;
++  }
+ 
+-// DLL Entry Point
+-extern "C" BOOL WINAPI DllMain(HINSTANCE instance,
+-                               DWORD reason,
+-                               LPVOID reserved) {
+-  // Lets see if we need to initialize InstantiateWinUsbInterface
+-  // variable. We do that only once, on condition that this DLL is
+-  // being attached to the process and InstantiateWinUsbInterface
+-  // address has not been calculated yet.
+-  if (DLL_PROCESS_ATTACH == reason) {
+-    _AtlModule.AttachToAdbWinUsbApi();
++  // WINUSB.DLL is installed. Lets load AdbWinUsbApi.dll and cache its
++  // InstantiateWinUsbInterface export.
++  // We require that AdbWinUsbApi.dll is located in the same folder
++  // where AdbWinApi.dll and adb.exe are located, so by Windows
++  // conventions we can pass just module name, and not the full path.
++  g_adbwinusbapi_handle = LoadLibraryW(L"AdbWinUsbApi.dll");
++  if (NULL != g_adbwinusbapi_handle) {
++    InstantiateWinUsbInterface = reinterpret_cast<PFN_INSTWINUSBINTERFACE>
++      (GetProcAddress(g_adbwinusbapi_handle, "InstantiateWinUsbInterface"));
++    g_return = true;
+   }
+-  return _AtlModule.DllMain(reason, reserved);
++  else
++    g_return = false;
++
++ret:
++  return g_return;
+ }
+diff --git a/host/windows/usb/api/adb_api.cpp b/host/windows/usb/api/adb_api.cpp
+index e58bcf17a..8b743f119 100644
+--- a/host/windows/usb/api/adb_api.cpp
++++ b/host/windows/usb/api/adb_api.cpp
+@@ -30,6 +30,9 @@
+ #include "adb_helper_routines.h"
+ #include "adb_winusb_api.h"
+ 
++// defined in AdbWinApi.cpp
++extern bool AttachToAdbWinUsbApi();
++
+ /** \brief Points to InstantiateWinUsbInterface exported from AdbWinUsbApi.dll.
+ 
+   This variable is initialized with the actual address in DllMain routine for
+@@ -123,7 +126,14 @@ ADBAPIHANDLE __cdecl AdbCreateInterfaceByName(
+           return NULL;
+         }
+       } else {
+-        return NULL;
++        // HACK:
++        // since we aren't a dll (anymore!)
++        // we need to init somehow,
++        // do it now!
++        if (AttachToAdbWinUsbApi() && InstantiateWinUsbInterface != NULL)
++          return AdbCreateInterfaceByName(interface_name);
++        else
++          return NULL;
+       }
+     }
+ 
+@@ -434,7 +444,7 @@ ADBAPIHANDLE __cdecl AdbWriteEndpointAsync(ADBAPIHANDLE adb_endpoint,
+     return ret;
+   } else {
+     SetLastError(ERROR_INVALID_HANDLE);
+-    return false;
++    return NULL;
+   }
+ }
+ 
+diff --git a/host/windows/usb/api/adb_api.h b/host/windows/usb/api/adb_api.h
+index 9bd9274e9..74f282c1d 100755
+--- a/host/windows/usb/api/adb_api.h
++++ b/host/windows/usb/api/adb_api.h
+@@ -102,8 +102,8 @@ typedef struct _AdbEndpointInformation {
+ #define ADBWIN_API EXTERN_C __declspec(dllexport)
+ #define ADBWIN_API_CLASS     __declspec(dllexport)
+ #else
+-#define ADBWIN_API EXTERN_C __declspec(dllimport)
+-#define ADBWIN_API_CLASS     __declspec(dllimport)
++#define ADBWIN_API EXTERN_C
++#define ADBWIN_API_CLASS
+ #endif
+ 
+ /** \brief Handle to an API object.
+diff --git a/host/windows/usb/api/adb_helper_routines.cpp b/host/windows/usb/api/adb_helper_routines.cpp
+index e45ff91c2..92449b3d4 100644
+--- a/host/windows/usb/api/adb_helper_routines.cpp
++++ b/host/windows/usb/api/adb_helper_routines.cpp
+@@ -234,7 +234,18 @@ bool GetUsbDeviceName(HDEVINFO hardware_dev_info,
+   }
+ 
+   try {
+-    *name = func_class_dev_data->DevicePath;
++    // convert to std::string for str.length();
++    std::string tmp_str(func_class_dev_data->DevicePath);
++    size_t sz = tmp_str.length();
++    
++    // convert to wchar_t array
++    wchar_t tmp[sz];
++    mbstowcs(tmp, func_class_dev_data->DevicePath, sz);
++
++    // null terminate
++    tmp[sz] = '\0';
++
++    *name = tmp;
+   } catch (...) {
+     SetLastError(ERROR_OUTOFMEMORY);
+   }
+@@ -246,7 +257,7 @@ bool GetUsbDeviceName(HDEVINFO hardware_dev_info,
+ 
+ bool IsLegacyInterface(const wchar_t* interface_name) {
+   // Open USB device for this intefface
+-  HANDLE usb_device_handle = CreateFile(interface_name,
++  HANDLE usb_device_handle = CreateFileW(interface_name,
+                                         GENERIC_READ | GENERIC_WRITE,
+                                         FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                         NULL,
+diff --git a/host/windows/usb/api/adb_legacy_endpoint_object.cpp b/host/windows/usb/api/adb_legacy_endpoint_object.cpp
+index 2baa53b3d..f87536efe 100755
+--- a/host/windows/usb/api/adb_legacy_endpoint_object.cpp
++++ b/host/windows/usb/api/adb_legacy_endpoint_object.cpp
+@@ -53,7 +53,7 @@ ADBAPIHANDLE AdbLegacyEndpointObject::CommonAsyncReadWrite(
+ 
+   if (!IsOpened()) {
+     SetLastError(ERROR_INVALID_HANDLE);
+-    return false;
++    return NULL;
+   }
+ 
+   bool is_ioctl_write = is_read ? false : (0 != time_out);
+@@ -202,7 +202,7 @@ ADBAPIHANDLE AdbLegacyEndpointObject::CreateHandle(
+   }
+ 
+   // Open USB handle
+-  usb_handle_ = CreateFile(item_path,
++  usb_handle_ = CreateFileW(item_path,
+                            desired_access,
+                            share_mode,
+                            NULL,
+diff --git a/host/windows/usb/api/adb_legacy_interface.cpp b/host/windows/usb/api/adb_legacy_interface.cpp
+index 9eab9bd56..bf86e90d4 100755
+--- a/host/windows/usb/api/adb_legacy_interface.cpp
++++ b/host/windows/usb/api/adb_legacy_interface.cpp
+@@ -37,7 +37,7 @@ AdbLegacyInterfaceObject::~AdbLegacyInterfaceObject() {
+ 
+ ADBAPIHANDLE AdbLegacyInterfaceObject::CreateHandle() {
+   // Open USB device for this intefface
+-  HANDLE usb_device_handle = CreateFile(interface_name().c_str(),
++  HANDLE usb_device_handle = CreateFileW(interface_name().c_str(),
+                                         GENERIC_READ | GENERIC_WRITE,
+                                         FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                         NULL,
+@@ -67,7 +67,7 @@ ADBAPIHANDLE AdbLegacyInterfaceObject::CreateHandle() {
+   }
+ 
+   if (!ok) {
+-    return false;
++    return NULL;
+   }
+ 
+   // Save indexes and IDs for bulk read / write endpoints. We will use them to
+@@ -78,14 +78,13 @@ ADBAPIHANDLE AdbLegacyInterfaceObject::CreateHandle() {
+     // Get endpoint information
+     AdbEndpointInformation pipe_info;
+     if (!GetEndpointInformation(endpoint, &pipe_info)) {
+-      return false;
++      return NULL;
+     }
+ 
+     if (AdbEndpointTypeBulk == pipe_info.endpoint_type) {
+       // This is a bulk endpoint. Cache its index and ID.
+       if (0 != (pipe_info.endpoint_address & USB_ENDPOINT_DIRECTION_MASK)) {
+         // Use this endpoint as default bulk read endpoint
+-        ATLASSERT(0xFF == def_read_endpoint_);
+         def_read_endpoint_ = endpoint;
+         read_endpoint_id_ = pipe_info.endpoint_address;
+       } else {
+@@ -109,7 +108,7 @@ bool AdbLegacyInterfaceObject::GetSerialNumber(void* buffer,
+   }
+ 
+   // Open USB device for this intefface
+-  HANDLE usb_device_handle = CreateFile(interface_name().c_str(),
++  HANDLE usb_device_handle = CreateFileW(interface_name().c_str(),
+                                         GENERIC_READ,
+                                         FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                         NULL,
+@@ -117,7 +116,7 @@ bool AdbLegacyInterfaceObject::GetSerialNumber(void* buffer,
+                                         0,
+                                         NULL);
+   if (INVALID_HANDLE_VALUE == usb_device_handle) {
+-    return NULL;
++    return false;
+   }
+ 
+   WCHAR serial_number[512];
+@@ -130,7 +129,6 @@ bool AdbLegacyInterfaceObject::GetSerialNumber(void* buffer,
+                              serial_number, sizeof(serial_number),
+                              &ret_bytes,
+                              NULL);
+-
+   // Preserve error accross CloseHandle
+   ULONG error = ret ? NO_ERROR : GetLastError();
+ 
+@@ -153,7 +151,7 @@ bool AdbLegacyInterfaceObject::GetSerialNumber(void* buffer,
+   if (!ansi) {
+     // If user asked for wide char name just return it
+     wcscpy(reinterpret_cast<wchar_t*>(buffer), serial_number);
+-    return true;
++    return false;
+   }
+ 
+   // We need to convert name from wide char to ansi string
+@@ -172,7 +170,7 @@ bool AdbLegacyInterfaceObject::GetEndpointInformation(
+     UCHAR endpoint_index,
+     AdbEndpointInformation* info) {
+   // Open USB device for this intefface
+-  HANDLE usb_device_handle = CreateFile(interface_name().c_str(),
++  HANDLE usb_device_handle = CreateFileW(interface_name().c_str(),
+                                         GENERIC_READ,
+                                         FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                         NULL,
+@@ -230,7 +228,7 @@ ADBAPIHANDLE AdbLegacyInterfaceObject::OpenEndpoint(
+       endpoint_index = def_write_endpoint_;
+     } else {
+       SetLastError(ERROR_INVALID_PARAMETER);
+-      return false;
++      return NULL;
+     }
+   } catch (...) {
+     // We don't expect exceptions other than OOM thrown here.
+@@ -250,7 +248,7 @@ ADBAPIHANDLE AdbLegacyInterfaceObject::OpenEndpoint(
+     AdbOpenSharingMode sharing_mode) {
+   if (!IsOpened()) {
+     SetLastError(ERROR_INVALID_HANDLE);
+-    return false;
++    return NULL;
+   }
+ 
+   AdbLegacyEndpointObject* adb_endpoint = NULL;
+diff --git a/host/windows/usb/api/adb_object_handle.cpp b/host/windows/usb/api/adb_object_handle.cpp
+index 751a0e24a..3f64b90a9 100644
+--- a/host/windows/usb/api/adb_object_handle.cpp
++++ b/host/windows/usb/api/adb_object_handle.cpp
+@@ -23,12 +23,13 @@
+ #include "stdafx.h"
+ #include "adb_api.h"
+ #include "adb_object_handle.h"
++#include "../winusb/adb_generic_lock.h"
+ 
+ /// Global ADBAPIHANDLE -> AdbObjectHandle* map
+ AdbObjectHandleMap      the_map;
+ 
+ /// Locker for the AdbObjectHandleMap instance
+-CComAutoCriticalSection the_map_locker;
++AdbGenericLock the_map_locker;
+ 
+ /// Next adb handle value generator
+ ULONG_PTR               next_adb_handle_value = 0;
+diff --git a/host/windows/usb/api/stdafx.h b/host/windows/usb/api/stdafx.h
+index d57bec74b..6801fdad2 100644
+--- a/host/windows/usb/api/stdafx.h
++++ b/host/windows/usb/api/stdafx.h
+@@ -63,7 +63,6 @@
+ #include <windows.h>
+ #pragma warning(disable: 4702)
+ #pragma warning(disable: 4201)
+-#include <atlbase.h>
+ #include <winioctl.h>
+ #include <setupapi.h>
+ #include <vector>
+@@ -74,6 +73,12 @@
+ #include <usbdi.h>
+ #include <usb100.h>
+ 
+-#include "resource.h"
++#include "Resource.h"
+ 
+-using namespace ATL;
++// ATLASSERT
++#ifndef NDEBUG
++#include <assert.h>
++#define ATLASSERT(x) assert(x)
++#else
++#define ATLASSERT(x) 
++#endif // NDEBUG
+diff --git a/host/windows/usb/winusb/AdbWinUsbApi.cpp b/host/windows/usb/winusb/AdbWinUsbApi.cpp
+index 4916eebd2..4efb82b20 100755
+--- a/host/windows/usb/winusb/AdbWinUsbApi.cpp
++++ b/host/windows/usb/winusb/AdbWinUsbApi.cpp
+@@ -19,7 +19,7 @@
+ #include "stdafx.h"
+ #include "adb_winusb_interface.h"
+ 
+-class CAdbWinApiModule : public CAtlDllModuleT< CAdbWinApiModule > {
++class CAdbWinApiModule {
+ public:
+ };
+ 
+@@ -29,7 +29,7 @@ CAdbWinApiModule _AtlModule;
+ extern "C" BOOL WINAPI DllMain(HINSTANCE instance,
+                                DWORD reason,
+                                LPVOID reserved) {
+-    return _AtlModule.DllMain(reason, reserved);
++    return TRUE;
+ }
+ 
+ /** \brief Instantiates interface instance that uses WinUsb API to communicate
+diff --git a/host/windows/usb/winusb/adb_generic_lock.cpp b/host/windows/usb/winusb/adb_generic_lock.cpp
+new file mode 100644
+index 000000000..83a382d11
+--- /dev/null
++++ b/host/windows/usb/winusb/adb_generic_lock.cpp
+@@ -0,0 +1,14 @@
++#include "adb_generic_lock.h"
++
++void AdbGenericLock::Lock()
++{
++    while(this->_locked)
++        std::this_thread::sleep_for(std::chrono::microseconds(100));
++
++    this->_locked = true;
++}
++
++void AdbGenericLock::Unlock()
++{
++    this->_locked = false;
++}
+\ No newline at end of file
+diff --git a/host/windows/usb/winusb/adb_generic_lock.h b/host/windows/usb/winusb/adb_generic_lock.h
+new file mode 100644
+index 000000000..2caa03919
+--- /dev/null
++++ b/host/windows/usb/winusb/adb_generic_lock.h
+@@ -0,0 +1,16 @@
++#ifndef ADB_WINUSB_LOCK_H
++#define ADB_WINUSB_LOCK_H
++
++#include <thread>
++
++class AdbGenericLock
++{
++  public:
++    void Lock();
++    void Unlock();
++
++  private:
++    bool _locked;
++};
++
++#endif // ADB_WINUSB_LOCK_H
+\ No newline at end of file
+diff --git a/host/windows/usb/winusb/adb_winusb_endpoint_object.cpp b/host/windows/usb/winusb/adb_winusb_endpoint_object.cpp
+index dee916705..a4b82fb26 100755
+--- a/host/windows/usb/winusb/adb_winusb_endpoint_object.cpp
++++ b/host/windows/usb/winusb/adb_winusb_endpoint_object.cpp
+@@ -104,7 +104,7 @@ ADBAPIHANDLE AdbWinUsbEndpointObject::CommonAsyncReadWrite(
+   // CommonSyncReadWrite(). This is not yet implemented because there are no
+   // callers to Adb{Read,Write}EndpointAsync() in AOSP, and hence no testing.
+   if (!SetTimeout(time_out))
+-    return false;
++    return NULL;
+ 
+   // Create completion i/o object
+   AdbIOCompletion* adb_io_completion = NULL;
+@@ -166,7 +166,7 @@ bool AdbWinUsbEndpointObject::CommonSyncReadWrite(bool is_read,
+   if (is_closing_) {
+     lock_.Unlock();
+     // AdbCloseHandle() is in progress, so don't start up any new IOs.
+-    SetLastError(ERROR_HANDLES_CLOSED);
++    SetLastError(0x2A4);
+     return false;
+   } else {
+     // Not closing down, so record the fact that we're doing IO. This will
+diff --git a/host/windows/usb/winusb/adb_winusb_endpoint_object.h b/host/windows/usb/winusb/adb_winusb_endpoint_object.h
+index 2da7bd206..d8baffc8d 100755
+--- a/host/windows/usb/winusb/adb_winusb_endpoint_object.h
++++ b/host/windows/usb/winusb/adb_winusb_endpoint_object.h
+@@ -23,6 +23,7 @@
+ 
+ #include "..\api\adb_endpoint_object.h"
+ #include "adb_winusb_interface.h"
++#include "adb_generic_lock.h"
+ 
+ /** Class AdbWinUsbEndpointObject encapsulates a handle opened to an endpoint on
+   our device.
+@@ -180,7 +181,7 @@ class AdbWinUsbEndpointObject : public AdbEndpointObject {
+ 
+  protected:
+   /// Protects is_closing_ and pending_io_count_.
+-  CComAutoCriticalSection lock_;
++  AdbGenericLock lock_;
+ 
+   /// Once set, prevents new IOs from starting up.
+   bool is_closing_;
+diff --git a/host/windows/usb/winusb/adb_winusb_interface.cpp b/host/windows/usb/winusb/adb_winusb_interface.cpp
+index 9d0377a46..d20538800 100755
+--- a/host/windows/usb/winusb/adb_winusb_interface.cpp
++++ b/host/windows/usb/winusb/adb_winusb_interface.cpp
+@@ -54,7 +54,7 @@ LONG AdbWinUsbInterfaceObject::Release() {
+ ADBAPIHANDLE AdbWinUsbInterfaceObject::CreateHandle() {
+   // Open USB device for this inteface Note that WinUsb API
+   // requires the handle to be opened for overlapped I/O.
+-  usb_device_handle_ = CreateFile(interface_name().c_str(),
++  usb_device_handle_ = CreateFileW(interface_name().c_str(),
+                                   GENERIC_READ | GENERIC_WRITE,
+                                   FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                   NULL, OPEN_EXISTING,
+@@ -69,7 +69,7 @@ ADBAPIHANDLE AdbWinUsbInterfaceObject::CreateHandle() {
+   // Cache current interface number that will be used in
+   // WinUsb_Xxx calls performed on this interface.
+   if (!WinUsb_GetCurrentAlternateSetting(winusb_handle(), &interface_number_))
+-    return false;
++    return NULL;
+ 
+   // Cache interface properties
+   unsigned long bytes_written;
+@@ -78,7 +78,7 @@ ADBAPIHANDLE AdbWinUsbInterfaceObject::CreateHandle() {
+   if (!WinUsb_GetDescriptor(winusb_handle(), USB_DEVICE_DESCRIPTOR_TYPE, 0, 0,
+                             reinterpret_cast<PUCHAR>(&usb_device_descriptor_),
+                             sizeof(usb_device_descriptor_), &bytes_written)) {
+-    return false;
++    return NULL;
+   }
+ 
+   // Cache USB configuration descriptor
+@@ -86,13 +86,13 @@ ADBAPIHANDLE AdbWinUsbInterfaceObject::CreateHandle() {
+                             0, 0,
+                             reinterpret_cast<PUCHAR>(&usb_config_descriptor_),
+                             sizeof(usb_config_descriptor_), &bytes_written)) {
+-    return false;
++    return NULL;
+   }
+ 
+   // Cache USB interface descriptor
+   if (!WinUsb_QueryInterfaceSettings(winusb_handle(), interface_number(),
+                                      &usb_interface_descriptor_)) {
+-    return false;
++    return NULL;
+   }
+ 
+   // Save indexes and IDs for bulk read / write endpoints. We will use them to
+@@ -104,7 +104,7 @@ ADBAPIHANDLE AdbWinUsbInterfaceObject::CreateHandle() {
+     WINUSB_PIPE_INFORMATION pipe_info;
+     if (!WinUsb_QueryPipe(winusb_handle(), interface_number(), endpoint,
+                           &pipe_info)) {
+-      return false;
++      return NULL;
+     }
+ 
+     if (UsbdPipeTypeBulk == pipe_info.PipeType) {
+@@ -309,7 +309,7 @@ ADBAPIHANDLE AdbWinUsbInterfaceObject::OpenEndpoint(
+     endpoint_index = def_write_endpoint_;
+   } else {
+     SetLastError(ERROR_INVALID_PARAMETER);
+-    return false;
++    return NULL;
+   }
+ 
+   return OpenEndpoint(endpoint_id, endpoint_index);
+@@ -319,7 +319,7 @@ ADBAPIHANDLE AdbWinUsbInterfaceObject::OpenEndpoint(UCHAR endpoint_id,
+                                                     UCHAR endpoint_index) {
+   if (!IsOpened()) {
+     SetLastError(ERROR_INVALID_HANDLE);
+-    return false;
++    return NULL;
+   }
+ 
+   AdbEndpointObject* adb_endpoint = NULL;
+diff --git a/host/windows/usb/winusb/stdafx.h b/host/windows/usb/winusb/stdafx.h
+index c2aa8dee6..21555b95e 100755
+--- a/host/windows/usb/winusb/stdafx.h
++++ b/host/windows/usb/winusb/stdafx.h
+@@ -63,7 +63,6 @@
+ #include <windows.h>
+ #pragma warning(disable: 4702)
+ #pragma warning(disable: 4201)
+-#include <atlbase.h>
+ #include <winioctl.h>
+ #include <setupapi.h>
+ #include <vector>
+@@ -73,6 +72,12 @@
+ #pragma warning(disable: 4200)
+ #include <winusb.h>
+ 
+-#include "resource.h"
++#include "Resource.h"
+ 
+-using namespace ATL;
++// ATLASSERT
++#ifndef NDEBUG
++#include <assert.h>
++#define ATLASSERT(x) assert(x)
++#else
++#define ATLASSERT(x) 
++#endif // NDEBUG
+diff --git a/host/windows/usb/api/AdbWinApi.rc b/host/windows/usb/api/AdbWinApi.rc
+index 0d78dd3d1..3bbd36c39 100644
+--- a/host/windows/usb/api/AdbWinApi.rc
++++ b/host/windows/usb/api/AdbWinApi.rc
+@@ -23,7 +23,7 @@
+ //
+ // Generated from the TEXTINCLUDE 2 resource.
+ //
+-#include "winres.h"
++#include "winresrc.h"
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ #undef APSTUDIO_READONLY_SYMBOLS
+diff --git a/host/windows/usb/winusb/AdbWinUsbApi.rc b/host/windows/usb/winusb/AdbWinUsbApi.rc
+index a33082e07..1493ab3d3 100755
+--- a/host/windows/usb/winusb/AdbWinUsbApi.rc
++++ b/host/windows/usb/winusb/AdbWinUsbApi.rc
+@@ -23,7 +23,7 @@
+ //
+ // Generated from the TEXTINCLUDE 2 resource.
+ //
+-#include "winres.h"
++#include "winresrc.h"
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ #undef APSTUDIO_READONLY_SYMBOLS

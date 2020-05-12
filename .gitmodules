@@ -15,3 +15,6 @@
 [submodule "third_party/tinyxml2/tinyxml2"]
 	path = ThirdParty/tinyxml2/tinyxml2
 	url = https://github.com/leethomason/tinyxml2
+[submodule "ThirdParty/fastboot/android_development"]
+	path = ThirdParty/fastboot/android_development
+	url = https://github.com/LineageOS/android_development

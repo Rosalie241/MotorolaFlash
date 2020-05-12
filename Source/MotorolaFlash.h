@@ -45,7 +45,7 @@ class MotorolaFlash : public QMainWindow, private Ui::MotorolaFlash
     void setButtons();
 
   public:
-    MotorolaFlash(QMainWindow *);
+    MotorolaFlash();
     ~MotorolaFlash();
 
   private slots:

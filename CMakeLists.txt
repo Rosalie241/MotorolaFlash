@@ -22,7 +22,7 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(Qt5 COMPONENTS Widgets Core REQUIRED)
 
-add_executable(MotorolaFlash
+add_executable(MotorolaFlash WIN32
     # Window(s)
     Source/MotorolaFlash.ui
 

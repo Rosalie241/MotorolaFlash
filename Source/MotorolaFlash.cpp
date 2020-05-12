@@ -15,7 +15,7 @@
 
 #include "MotorolaFlash.h"
 
-MotorolaFlash::MotorolaFlash(QMainWindow *parent) : QMainWindow(parent)
+MotorolaFlash::MotorolaFlash() : QMainWindow(nullptr)
 {
     this->setupUi(this);
 
